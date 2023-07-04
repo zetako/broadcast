@@ -96,6 +96,30 @@ func (b *Broadcaster[T]) Send(v T) error {
 	return b.SendWithTimeout(v, 0)
 }
 
+// SendWithoutTimeout broadcasts a message to each listener's channel.
+// Sending on a closed channel causes a runtime panic.
+// This method blocks until each listener received or error.
+// This method will try to send message concurrently to each listener.
+func (b *Broadcaster[T]) SendWithoutTimeout(v T) error {
+	b.m.Lock()
+	defer b.m.Unlock()
+	if b.closed {
+		return ErrClosedChannel
+	}
+
+	var wg sync.WaitGroup
+	for id := range b.listeners {
+		wg.Add(1)
+		l := b.listeners[id]
+		go func() {
+			l <- v
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	return nil
+}
+
 // Discard closes the channel, disabling the sending of further messages.
 func (b *Broadcaster[T]) Discard() {
 	b.m.Lock()
