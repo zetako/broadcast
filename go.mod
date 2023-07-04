@@ -1,4 +1,4 @@
-module broadcast
+module github.com/zetako/broadcast
 
 go 1.20
 
